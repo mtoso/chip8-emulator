@@ -193,6 +193,21 @@ impl Cpu {
         }
     }
 
+    pub fn reset(&mut self) {
+        self.i = 0;
+        self.pc = 0x200;
+        self.memory = [0; 4096];
+        self.v = [0; 16];
+        self.stack = [0; 16];
+        self.sp = 0;
+        self.dt = 0;
+        self.rand = ComplementaryMultiplyWithCarryGen::new(1);
+        self.display.cls();
+        for i in 0..80 {
+            self.memory[i] = FONT_SET[i];
+        }
+    }
+
     pub fn execute_cycle(&mut self) {
         // read the opcode from the memory
         let opcode = (self.memory[self.pc as usize] as u16) << 8
