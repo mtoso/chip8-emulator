@@ -1,157 +1,167 @@
-// https://codereview.stackexchange.com/questions/169172/complementary-multiply-with-carry-in-rust/169338
-pub const CMWC_CYCLE: usize = 4096;
-const PHI: u32 = 0x9e3779b9;
+mod rand {
+    // https://codereview.stackexchange.com/questions/169172/complementary-multiply-with-carry-in-rust/169338
+    pub const CMWC_CYCLE: usize = 4096;
+    const PHI: u32 = 0x9e3779b9;
 
-pub struct ComplementaryMultiplyWithCarryGen {
-    pub q: [u32; CMWC_CYCLE],
-    pub c: u32,
-    pub i: usize,
-}
-
-impl ComplementaryMultiplyWithCarryGen {
-    pub fn new(seed: u32) -> ComplementaryMultiplyWithCarryGen {
-        let mut q = [0; CMWC_CYCLE];
-
-        q[0] = seed;
-        q[1] = seed.wrapping_add(PHI);
-        q[2] = seed.wrapping_add(PHI).wrapping_add(PHI);
-
-        for i in 3..CMWC_CYCLE {
-            let window = &mut q[i - 3..i + 1];
-            window[3] = window[0] ^ window[1] ^ PHI ^ seed;
-        }
-
-        ComplementaryMultiplyWithCarryGen {
-            q: q,
-            c: 362436,
-            i: 4095,
-        }
+    pub struct ComplementaryMultiplyWithCarryGen {
+        pub q: [u32; CMWC_CYCLE],
+        pub c: u32,
+        pub i: usize,
     }
 
-    pub fn random(&mut self) -> u32 {
-        const A: u64 = 18782;
-        const R: u32 = 0xfffffffe;
+    impl ComplementaryMultiplyWithCarryGen {
+        pub fn new(seed: u32) -> ComplementaryMultiplyWithCarryGen {
+            let mut q = [0; CMWC_CYCLE];
 
-        self.i = (self.i + 1) & (CMWC_CYCLE - 1);
-        let t = A * self.q[self.i] as u64 + self.c as u64;
+            q[0] = seed;
+            q[1] = seed.wrapping_add(PHI);
+            q[2] = seed.wrapping_add(PHI).wrapping_add(PHI);
 
-        self.c = (t >> 32) as u32;
-        let mut x = (t + self.c as u64) as u32;
-        if x < self.c {
-            x += 1;
-            self.c += 1;
-        }
+            for i in 3..CMWC_CYCLE {
+                let window = &mut q[i - 3..i + 1];
+                window[3] = window[0] ^ window[1] ^ PHI ^ seed;
+            }
 
-        self.q[self.i] = R - x;
-        self.q[self.i]
-    }
-}
-
-// Keypad                   Keyboard
-// +-+-+-+-+                +-+-+-+-+
-// |1|2|3|C|                |1|2|3|4|
-// +-+-+-+-+                +-+-+-+-+
-// |4|5|6|D|                |Q|W|E|R|
-// +-+-+-+-+       =>       +-+-+-+-+
-// |7|8|9|E|                |A|S|D|F|
-// +-+-+-+-+                +-+-+-+-+
-// |A|0|B|F|                |Z|X|C|V|
-// +-+-+-+-+                +-+-+-+-+
-
-pub struct Keypad {
-    pub keys: [bool; 16],
-}
-
-impl Keypad {
-    pub fn new() -> Self {
-        Keypad { keys: [false; 16] }
-    }
-
-    pub fn key_down(&mut self, index: u8) {
-        self.keys[index as usize] = true;
-    }
-
-    pub fn key_up(&mut self, index: u8) {
-        self.keys[index as usize] = false;
-    }
-
-    pub fn is_key_dow(&self, index: u8) -> bool {
-        self.keys[index as usize]
-    }
-}
-
-const WIDTH: usize = 64;
-const HEIGHT: usize = 32;
-
-pub struct Display {
-    pub memory: [u8; 2048], // WIDTH * HEIGHT
-}
-
-impl Display {
-    pub fn new() -> Self {
-        Display { memory: [0; 2048] }
-    }
-
-    pub fn set_pixel(&mut self, x: usize, y: usize, on: bool) {
-        self.memory[x + y * WIDTH] = on as u8;
-    }
-
-    pub fn get_pixel(&mut self, x: usize, y: usize) -> bool {
-        self.memory[x + y * WIDTH] == 1
-    }
-
-    pub fn cls(&mut self) {
-        for x in 0..WIDTH {
-            for y in 0..HEIGHT {
-                self.set_pixel(x, y, false);
+            ComplementaryMultiplyWithCarryGen {
+                q: q,
+                c: 362436,
+                i: 4095,
             }
         }
+
+        pub fn random(&mut self) -> u32 {
+            const A: u64 = 18782;
+            const R: u32 = 0xfffffffe;
+
+            self.i = (self.i + 1) & (CMWC_CYCLE - 1);
+            let t = A * self.q[self.i] as u64 + self.c as u64;
+
+            self.c = (t >> 32) as u32;
+            let mut x = (t + self.c as u64) as u32;
+            if x < self.c {
+                x += 1;
+                self.c += 1;
+            }
+
+            self.q[self.i] = R - x;
+            self.q[self.i]
+        }
+    }
+}
+
+mod keypad {
+    // Keypad                   Keyboard
+    // +-+-+-+-+                +-+-+-+-+
+    // |1|2|3|C|                |1|2|3|4|
+    // +-+-+-+-+                +-+-+-+-+
+    // |4|5|6|D|                |Q|W|E|R|
+    // +-+-+-+-+       =>       +-+-+-+-+
+    // |7|8|9|E|                |A|S|D|F|
+    // +-+-+-+-+                +-+-+-+-+
+    // |A|0|B|F|                |Z|X|C|V|
+    // +-+-+-+-+                +-+-+-+-+
+
+    pub struct Keypad {
+        pub keys: [bool; 16],
     }
 
-    pub fn draw(&mut self, x: usize, y: usize, sprite: &[u8]) -> bool {
-        let rows = sprite.len();
-        let mut collision = false;
-        for j in 0..rows {
-            let row = sprite[j];
-            for i in 0..8 {
-                // check every single bit, starting from the most significant bit
-                let value = row >> (7 - i) & 0x1;
-                if value == 1 {
-                    // calculate the indexes in the memory
-                    let xi = (x + i) % WIDTH;
-                    let yj = (y + j) % HEIGHT;
-                    // get the value on the screen in order to detect collisions
-                    let value_screen_on = self.get_pixel(xi, yj);
-                    if value_screen_on {
-                        collision = true;
-                    }
-                    // draw the new value with XOR
-                    self.set_pixel(xi, yj, (value == 1) ^ value_screen_on);
+    impl Keypad {
+        pub fn new() -> Self {
+            Keypad { keys: [false; 16] }
+        }
+
+        pub fn key_down(&mut self, index: u8) {
+            self.keys[index as usize] = true;
+        }
+
+        pub fn key_up(&mut self, index: u8) {
+            self.keys[index as usize] = false;
+        }
+
+        pub fn is_key_dow(&self, index: u8) -> bool {
+            self.keys[index as usize]
+        }
+    }
+}
+
+mod display {
+    const WIDTH: usize = 64;
+    const HEIGHT: usize = 32;
+
+    pub struct Display {
+        pub memory: [u8; 2048], // WIDTH * HEIGHT
+    }
+
+    impl Display {
+        pub fn new() -> Self {
+            Display { memory: [0; 2048] }
+        }
+
+        pub fn set_pixel(&mut self, x: usize, y: usize, on: bool) {
+            self.memory[x + y * WIDTH] = on as u8;
+        }
+
+        pub fn get_pixel(&mut self, x: usize, y: usize) -> bool {
+            self.memory[x + y * WIDTH] == 1
+        }
+
+        pub fn cls(&mut self) {
+            for x in 0..WIDTH {
+                for y in 0..HEIGHT {
+                    self.set_pixel(x, y, false);
                 }
             }
         }
-        return collision;
+
+        pub fn draw(&mut self, x: usize, y: usize, sprite: &[u8]) -> bool {
+            let rows = sprite.len();
+            let mut collision = false;
+            for j in 0..rows {
+                let row = sprite[j];
+                for i in 0..8 {
+                    // check every single bit, starting from the most significant bit
+                    let value = row >> (7 - i) & 0x1;
+                    if value == 1 {
+                        // calculate the indexes in the memory
+                        let xi = (x + i) % WIDTH;
+                        let yj = (y + j) % HEIGHT;
+                        // get the value on the screen in order to detect collisions
+                        let value_screen_on = self.get_pixel(xi, yj);
+                        if value_screen_on {
+                            collision = true;
+                        }
+                        // draw the new value with XOR
+                        self.set_pixel(xi, yj, (value == 1) ^ value_screen_on);
+                    }
+                }
+            }
+            return collision;
+        }
     }
+
+    pub static FONT_SET: [u8; 80] = [
+        0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
+        0x20, 0x60, 0x20, 0x20, 0x70, // 1
+        0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
+        0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
+        0x90, 0x90, 0xF0, 0x10, 0x10, // 4
+        0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
+        0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
+        0xF0, 0x10, 0x20, 0x40, 0x40, // 7
+        0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
+        0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
+        0xF0, 0x90, 0xF0, 0x90, 0x90, // A
+        0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
+        0xF0, 0x80, 0x80, 0x80, 0xF0, // C
+        0xE0, 0x90, 0x90, 0x90, 0xE0, // D
+        0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
+        0xF0, 0x80, 0xF0, 0x80, 0x80, // F
+    ];
 }
 
-pub static FONT_SET: [u8; 80] = [
-    0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
-    0x20, 0x60, 0x20, 0x20, 0x70, // 1
-    0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
-    0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
-    0x90, 0x90, 0xF0, 0x10, 0x10, // 4
-    0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
-    0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
-    0xF0, 0x10, 0x20, 0x40, 0x40, // 7
-    0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
-    0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
-    0xF0, 0x90, 0xF0, 0x90, 0x90, // A
-    0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
-    0xF0, 0x80, 0x80, 0x80, 0xF0, // C
-    0xE0, 0x90, 0x90, 0x90, 0xE0, // D
-    0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
-    0xF0, 0x80, 0xF0, 0x80, 0x80, // F
-];
+use rand::ComplementaryMultiplyWithCarryGen;
+use display::{Display, FONT_SET};
+use keypad::Keypad;
 
 pub struct Cpu {
     // index register
@@ -187,9 +197,9 @@ impl Cpu {
             stack: [0; 16],
             sp: 0,
             dt: 0,
-            rand: ComplementaryMultiplyWithCarryGen::new(1),
-            display: Display::new(),
-            keypad: Keypad::new(),
+            rand: rand::ComplementaryMultiplyWithCarryGen::new(1),
+            display: display::Display::new(),
+            keypad: keypad::Keypad::new(),
         }
     }
 
@@ -423,7 +433,7 @@ impl Cpu {
 #[cfg(test)]
 mod tests {
     use super::Cpu;
-    use super::Display;
+    use super::display::Display;
 
     #[test]
     fn opcode_jp() {
