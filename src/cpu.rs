@@ -36,10 +36,14 @@ pub struct Cpu {
 #[wasm_bindgen]
 impl Cpu {
     pub fn new() -> Cpu {
+        // init the memory space: first we init the fonts
+        let mut memory = [0u8; MEMORY_SIZE];
+        memory[0..FONT_SET.len()].copy_from_slice(&FONT_SET);
+
         Cpu {
             i: 0,
             pc: 0x200,
-            memory: [0u8; MEMORY_SIZE],
+            memory,
             v: [0; 16],
             stack: [0; 16],
             sp: 0,
@@ -52,8 +56,6 @@ impl Cpu {
 
     pub fn load_cartridge(&mut self, program: Cartridge) {
         let program_memory = program.get_memory();
-        // init the memory space: first we init the fonts
-        self.memory[0..FONT_SET.len()].copy_from_slice(&FONT_SET);
         // then we init the memory with the program to run starting at the addr 0x200 
         self.memory[0x200..0x200+program_memory.len()].copy_from_slice(&program_memory);
     }
