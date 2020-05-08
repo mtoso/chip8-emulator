@@ -56,7 +56,7 @@ impl Cpu {
 
     pub fn load_cartridge(&mut self, program: Cartridge) {
         let program_memory = program.get_memory();
-        // then we init the memory with the program to run starting at the addr 0x200 
+        // init the memory with the program starting at the addr 0x200 
         self.memory[0x200..0x200+program_memory.len()].copy_from_slice(&program_memory);
     }
 
@@ -64,6 +64,7 @@ impl Cpu {
         self.i = 0;
         self.pc = 0x200;
         self.memory = [0u8; MEMORY_SIZE];
+        self.memory[0..FONT_SET.len()].copy_from_slice(&FONT_SET);
         self.v = [0; 16];
         self.stack = [0; 16];
         self.sp = 0;
