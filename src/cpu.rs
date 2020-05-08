@@ -9,6 +9,30 @@ use super::cartridge::Cartridge;
 use super::MEMORY_SIZE;
 
 #[wasm_bindgen]
+pub struct ExecutionResult {
+    display_state: Vec<u8>,
+    should_beep: bool
+}
+
+#[wasm_bindgen]
+impl ExecutionResult {
+    pub fn new(display_state: Vec<u8>, should_beep: bool) -> ExecutionResult {
+        ExecutionResult {
+            display_state,
+            should_beep
+        }
+    }
+
+    pub fn get_display_state(&self) -> Vec<u8> {
+        self.display_state.clone()
+    }
+
+    pub fn get_should_beep(&self) -> bool {
+        self.should_beep
+    }
+}
+
+#[wasm_bindgen]
 pub struct Cpu {
     // index register
     i: u16,
@@ -25,6 +49,8 @@ pub struct Cpu {
     sp: u8,
     // delay timer
     dt: u8,
+    // sound timer
+    st: u8,
     // random number generator using CMWC algo
     rand: ComplementaryMultiplyWithCarryGen,
     // display
@@ -48,6 +74,7 @@ impl Cpu {
             stack: [0; 16],
             sp: 0,
             dt: 0,
+            st: 0,
             rand: ComplementaryMultiplyWithCarryGen::new(1),
             display: Display::new(),
             keypad: Keypad::new(),
@@ -69,15 +96,26 @@ impl Cpu {
         self.stack = [0; 16];
         self.sp = 0;
         self.dt = 0;
+        self.st = 0;
         self.rand = ComplementaryMultiplyWithCarryGen::new(1);
         self.display.cls();
     }
 
-    pub fn execute_cycle(&mut self) {
+    pub fn execute_cycle(&mut self) -> ExecutionResult {
         // read the opcode from the memory
         let opcode = (self.memory[self.pc as usize] as u16) << 8
             | (self.memory[(self.pc + 1) as usize] as u16);
         self.process_opcode(opcode);
+        ExecutionResult::new(self.display.get_vram_copy(), self.st > 0)
+    }
+
+    fn update_timers(&mut self) {
+        if self.st > 0 {
+            self.st -= 1;
+        }
+        if self.dt > 0 {
+            self.dt -= 1;
+        }
     }
 
     fn process_opcode(&mut self, opcode: u16) {
@@ -98,6 +136,9 @@ impl Cpu {
 
         // increment the program counter
         self.pc += 2;
+
+        // update timers
+        self.update_timers();
 
         // process the opcode
         match (op_1, op_2, op_3, op_4) {
@@ -253,6 +294,10 @@ impl Cpu {
             // Set delay timer = Vx
             (0xF, _, 0x1, 0x5) => self.dt = vx,
 
+            // Fx18 - LD ST, Vx
+            // Set sound timer = Vx
+            (0xF, _, 0x1, 0x8) => self.st = vx,
+
             // Fx1E - ADD I, Vx
             // Set I = I + Vx
             (0xF, _, 1, 0xE) => self.i = self.i + vx as u16,
@@ -281,6 +326,7 @@ impl Cpu {
 
             (_, _, _, _) => unimplemented!("opcode {:04x}", opcode),
         }
+
     }
 }
 

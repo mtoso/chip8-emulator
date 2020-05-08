@@ -4,22 +4,22 @@ use super::DISPLAY_PIXEL_HEIGHT;
 const VRAM_SIZE: usize = DISPLAY_PIXEL_WIDTH * DISPLAY_PIXEL_HEIGHT;
 
 pub struct Display {
-    pub memory: [u8; VRAM_SIZE]
+    vram: [u8; VRAM_SIZE]
 }
 
 impl Display {
     pub fn new() -> Self {
-        Display { memory: [0; 2048] }
+        Display { vram: [0; 2048] }
     }
 
-    pub fn set_pixel(&mut self, x: usize, y: usize, on: bool) {
+    fn set_pixel(&mut self, x: usize, y: usize, on: bool) {
         let scaled = y * DISPLAY_PIXEL_WIDTH;
-        self.memory[x + scaled] = on as u8;
+        self.vram[x + scaled] = on as u8;
     }
 
-    pub fn is_pixel_on(&mut self, x: usize, y: usize) -> bool {
+    fn is_pixel_on(&mut self, x: usize, y: usize) -> bool {
         let scaled = y * DISPLAY_PIXEL_WIDTH;
-        self.memory[x + scaled] == 1
+        self.vram[x + scaled] == 1
     }
 
     pub fn cls(&mut self) {
@@ -54,6 +54,10 @@ impl Display {
             }
         }
         return collision;
+    }
+
+    pub fn get_vram_copy(&self) -> Vec<u8> {
+        self.vram.to_vec()
     }
 }
 
