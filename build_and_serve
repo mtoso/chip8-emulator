@@ -2,6 +2,6 @@
 
 set -ex
 
-wasm-pack build --target web --out-dir ./wasm --out-name chip8
-cp ./wasm/chip8.js ./wasm/chip8_bg.wasm ./web
+./build
+cd web
 npx http-server
