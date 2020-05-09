@@ -1,0 +1,7 @@
+#!/bin/sh
+
+set -ex
+
+wasm-pack build --target web --out-dir ./wasm --out-name chip8
+cp ./wasm/chip8.js ./wasm/chip8_bg.wasm ./web
+npx http-server

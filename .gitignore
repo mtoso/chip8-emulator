@@ -1,3 +1,5 @@
 /target
 Cargo.lock
 .DS_Store
+chip8.js
+chip8_bg.wasm
