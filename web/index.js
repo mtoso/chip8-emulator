@@ -2,6 +2,7 @@ import init, { Cartridge, Cpu } from './chip8.js'
 
 const CANVAS_WIDTH = 64;
 const CANVAS_HEIGHT = 32;
+const GAME_SPEED = 10;
 
 function initCanvas(width, height) {
     const canvas = document.getElementById("canvas");
@@ -22,13 +23,27 @@ function updateCanvas(displayState, ctx, width, height) {
     ctx.putImageData(imageData, 0, 0);
 }
 
+function setUpKeyboardListeners(emulator) {
+    document.addEventListener('keydown', event => {
+        const key = event.key;
+        emulator.keypad_down(key);
+    });
+
+    document.addEventListener('keyup', event => {
+        const key = event.key;
+        emulator.keypad_up(key);
+    });
+}
+
 const mainCtx = initCanvas(CANVAS_WIDTH, CANVAS_HEIGHT);
 (async function run() {
     await init();
 
     const emulator = Cpu.new();
 
-    const response = await window.fetch(`roms/PONG`);
+    setUpKeyboardListeners(emulator);
+
+    const response = await window.fetch(`roms/WIPEOFF.ch8`);
     const program = await response.arrayBuffer();
     const cartridge = Cartridge.new(new Uint8Array(program));
     emulator.load_cartridge(cartridge);
@@ -38,7 +53,7 @@ const mainCtx = initCanvas(CANVAS_WIDTH, CANVAS_HEIGHT);
         if (running) {
             let result;
             // batch instructions
-            for (let i = 0; i < 10; i++) {
+            for (let i = 0; i < GAME_SPEED; i++) {
                 result = emulator.execute_cycle();
             }
             const displayState = result.get_display_state();
@@ -46,7 +61,6 @@ const mainCtx = initCanvas(CANVAS_WIDTH, CANVAS_HEIGHT);
         }
         window.requestAnimationFrame(runloop);
     }
-
     window.requestAnimationFrame(runloop);
 
     const runButton = document.getElementById("run");

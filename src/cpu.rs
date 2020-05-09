@@ -101,6 +101,14 @@ impl Cpu {
         self.display.cls();
     }
 
+    pub fn keypad_down(&mut self, key: &str) {
+        self.keypad.key_down(key)
+    }
+
+    pub fn keypad_up(&mut self, key: &str) {
+        self.keypad.key_up(key)
+    }
+
     pub fn execute_cycle(&mut self) -> ExecutionResult {
         // read the opcode from the memory
         let opcode = (self.memory[self.pc as usize] as u16) << 8
@@ -268,11 +276,11 @@ impl Cpu {
 
             // Ex9E - SKP Vx
             // Skip next instruction if key with the value of Vx is pressed
-            (0xE, _, 0x9, 0xE) => self.pc += if self.keypad.is_key_dow(vx) { 2 } else { 0 },
+            (0xE, _, 0x9, 0xE) => self.pc += if self.keypad.is_key_idx_pressed(vx as usize) { 2 } else { 0 },
 
             // ExA1 - SKNP Vx
             // Skip next instruction if key with the value of Vx is not pressed
-            (0xE, _, 0xA, 0x1) => self.pc += if self.keypad.is_key_dow(vx) { 0 } else { 8 },
+            (0xE, _, 0xA, 0x1) => self.pc += if self.keypad.is_key_idx_pressed(vx as usize) { 0 } else { 2 },
 
             // Fx07 - LD Vx, DT
             // Set Vx = delay timer value
@@ -281,12 +289,12 @@ impl Cpu {
             // Fx0A - LD Vx, K
             // Wait for a key press, store the value of the key in Vx
             (0xF, _, 0x0, 0xA) => {
-                self.pc -= 2;
-                for (i, key) in self.keypad.keys.iter().enumerate() {
-                    if *key == true {
-                        self.v[x] = i as u8;
+                match self.keypad.get_first_pressed_key_idx() {
+                    Some(idx) => {
+                        self.v[x] = idx as u8;
                         self.pc += 2;
                     }
+                    None => ()
                 }
             }
 
