@@ -1,17 +1,17 @@
 use wasm_bindgen::prelude::*;
 
-use super::rand::ComplementaryMultiplyWithCarryGen;
+use super::cartridge::Cartridge;
 use super::display::Display;
 use super::font::FONT_SET;
 use super::keypad::Keypad;
-use super::cartridge::Cartridge;
+use super::rand::ComplementaryMultiplyWithCarryGen;
 
 use super::MEMORY_SIZE;
 
 #[wasm_bindgen]
 pub struct ExecutionResult {
     display_state: Vec<u8>,
-    should_beep: bool
+    should_beep: bool,
 }
 
 #[wasm_bindgen]
@@ -19,7 +19,7 @@ impl ExecutionResult {
     pub fn new(display_state: Vec<u8>, should_beep: bool) -> ExecutionResult {
         ExecutionResult {
             display_state,
-            should_beep
+            should_beep,
         }
     }
 
@@ -83,8 +83,8 @@ impl Cpu {
 
     pub fn load_cartridge(&mut self, program: Cartridge) {
         let program_memory = program.get_memory();
-        // init the memory with the program starting at the addr 0x200 
-        self.memory[0x200..0x200+program_memory.len()].copy_from_slice(&program_memory);
+        // init the memory with the program starting at the addr 0x200
+        self.memory[0x200..0x200 + program_memory.len()].copy_from_slice(&program_memory);
     }
 
     pub fn reset(&mut self) {
@@ -326,7 +326,6 @@ impl Cpu {
 
             (_, _, _, _) => unimplemented!("opcode {:04x}", opcode),
         }
-
     }
 }
 
@@ -348,7 +347,10 @@ mod tests {
         let mut cpu = Cpu::new();
         cpu.load_cartridge(Cartridge::new(&[0x2A, 0xBC]));
         cpu.execute_cycle();
-        assert_eq!(cpu.pc, 0x0ABC, "the program counter is updated to the new address");
+        assert_eq!(
+            cpu.pc, 0x0ABC,
+            "the program counter is updated to the new address"
+        );
         assert_eq!(cpu.sp, 1, "the stack pointer is incremented");
         assert_eq!(cpu.stack[0], 0x202, "the stack stores the previous address");
     }
@@ -362,7 +364,7 @@ mod tests {
         cpu.load_cartridge(Cartridge::new(&[0x31, 0xFE]));
         cpu.execute_cycle();
         assert_eq!(cpu.pc, 0x204, "the stack pointer skips");
-        
+
         cpu.reset();
 
         // vx != kk -> 0x31FA
@@ -493,7 +495,7 @@ mod tests {
 
         cpu.reset();
         cpu.v[1] = 10;
-        cpu.v[3] = 250; 
+        cpu.v[3] = 250;
 
         cpu.load_cartridge(Cartridge::new(&[0x81, 0x34]));
         cpu.execute_cycle();
@@ -564,7 +566,7 @@ mod tests {
 
         // jump to 0x0ABC
         cpu.load_cartridge(Cartridge::new(&[0x2A, 0xBC]));
-        
+
         cpu.execute_cycle();
         assert_eq!(
             cpu.pc, 0xABC,
@@ -598,7 +600,7 @@ mod tests {
         assert_eq!(cpu.pc, 0x202, "the program counter is advanced two bytes");
     }
 
-    #[test] 
+    #[test]
     fn opcode_axxx() {
         let mut cpu = Cpu::new();
         cpu.load_cartridge(Cartridge::new(&[0xAF, 0xAF]));

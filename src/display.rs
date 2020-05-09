@@ -1,10 +1,10 @@
-use super::DISPLAY_PIXEL_WIDTH;
 use super::DISPLAY_PIXEL_HEIGHT;
+use super::DISPLAY_PIXEL_WIDTH;
 
 const VRAM_SIZE: usize = DISPLAY_PIXEL_WIDTH * DISPLAY_PIXEL_HEIGHT;
 
 pub struct Display {
-    vram: [u8; VRAM_SIZE]
+    vram: [u8; VRAM_SIZE],
 }
 
 impl Display {
@@ -64,7 +64,7 @@ impl Display {
 #[cfg(test)]
 mod tests {
     use super::Display;
-    
+
     #[test]
     fn set_pixel() {
         let mut display = Display::new();

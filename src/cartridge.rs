@@ -9,7 +9,7 @@ pub struct Cartridge {
 impl Cartridge {
     pub fn new(data: &[u8]) -> Cartridge {
         Cartridge {
-            memory: data.to_vec()
+            memory: data.to_vec(),
         }
     }
 
@@ -24,7 +24,7 @@ mod tests {
 
     #[test]
     fn can_instantiate_cartridge() {
-        let cartridge = Cartridge::new(&[2,3,4,5]);
+        let cartridge = Cartridge::new(&[2, 3, 4, 5]);
         assert_eq!(cartridge.get_memory().len(), 4);
     }
 }
