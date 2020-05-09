@@ -1,4 +1,4 @@
-import init, { Cartridge, Cpu } from './wasm/chip8.js'
+import init, { Cartridge, Cpu } from './chip8.js'
 
 const CANVAS_WIDTH = 64;
 const CANVAS_HEIGHT = 32;
