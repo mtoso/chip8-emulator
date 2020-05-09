@@ -1,0 +1,30 @@
+<html>
+
+<head>
+    <link href="https://fonts.googleapis.com/css?family=VT323" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="styles.css">
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type" />
+</head>
+
+<body>
+    <div class='page'>
+        <h2>CHIP-8</h2>
+        <!-- <span class='label'>ROM:</span>
+        <select id='roms'>
+        </select> -->
+        <button id='run'>Start</button>
+        <!-- <button id='step'>Step</button> -->
+
+        <div class='screen'>
+            <canvas id='canvas' width='64' height='32' style='transform: scale(8); transform-origin: top left'></canvas>
+        </div>
+        <div class='container'>
+            <div class='memory'></div>
+            <div class='registers' id='r1'></div>
+            <div class='registers' id='r2'></div>
+        </div>
+    </div>
+    <script src="index.js" type="module"></script>
+</body>
+
+</html>
