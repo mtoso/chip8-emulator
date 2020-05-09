@@ -24,10 +24,13 @@ jobs:
       - name: Install wasm-pack
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
       
-      - name: Build
-        run: wasm-pack build --target web --out-dir ./web/wasm --out-name chip8 
+      - name: Build wasm
+        run: wasm-pack build --target web --out-dir ./wasm --out-name chip8 
+      
+      - name: Copy wasm files
+        run: cp ./wasm/chip8.js ./wasm/chip8_bg.wasm ./web
 
-      - name: Deploy
+      - name: Deploy to gh-pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
