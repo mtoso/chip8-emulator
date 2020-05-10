@@ -2,7 +2,39 @@ import init, { Cartridge, Cpu } from './chip8.js'
 
 const CANVAS_WIDTH = 64;
 const CANVAS_HEIGHT = 32;
-const GAME_SPEED = 10;
+const GAME_SPEEDS = [
+    1,
+    2,
+    3,
+];
+
+const ROMS = [
+    'IBM',
+    'INVADERS',
+    'PONG2',
+    'TETRIS',
+    'TIMEBOMB',
+    'UFO',
+    'WIPEOFF',
+];
+
+const romsSelect = document.getElementById("roms");
+const runButton = document.getElementById("run");
+const gameSpeeds = document.getElementById("game_speeds");
+
+ROMS.forEach(rom => {
+    const opt = document.createElement('option');
+    opt.appendChild(document.createTextNode(rom));
+    opt.value = rom;
+    romsSelect.appendChild(opt);
+});
+
+GAME_SPEEDS.forEach(speed => {
+    const opt = document.createElement('option');
+    opt.appendChild(document.createTextNode(`${speed}X`));
+    opt.value = speed;
+    gameSpeeds.appendChild(opt);
+});
 
 function initCanvas(width, height) {
     const canvas = document.getElementById("canvas");
@@ -23,16 +55,12 @@ function updateCanvas(displayState, ctx, width, height) {
     ctx.putImageData(imageData, 0, 0);
 }
 
-function setUpKeyboardListeners(emulator) {
-    document.addEventListener('keydown', event => {
-        const key = event.key;
-        emulator.keypad_down(key);
-    });
-
-    document.addEventListener('keyup', event => {
-        const key = event.key;
-        emulator.keypad_up(key);
-    });
+async function loadRom(rom, emulator) {
+    const response = await window.fetch(`roms/${rom}.ch8`);
+    const program = await response.arrayBuffer();
+    const cartridge = Cartridge.new(new Uint8Array(program));
+    emulator.reset();
+    emulator.load_cartridge(cartridge);
 }
 
 const mainCtx = initCanvas(CANVAS_WIDTH, CANVAS_HEIGHT);
@@ -41,19 +69,17 @@ const mainCtx = initCanvas(CANVAS_WIDTH, CANVAS_HEIGHT);
 
     const emulator = Cpu.new();
 
-    setUpKeyboardListeners(emulator);
+    romsSelect.value = 'WIPEOFF';
+    await loadRom('WIPEOFF', emulator);
 
-    const response = await window.fetch(`roms/WIPEOFF.ch8`);
-    const program = await response.arrayBuffer();
-    const cartridge = Cartridge.new(new Uint8Array(program));
-    emulator.load_cartridge(cartridge);
-
+    let gameSpeed = gameSpeeds.value = 1;
+     
     let running = false;
     const runloop = () => {
         if (running) {
             let result;
             // batch instructions
-            for (let i = 0; i < GAME_SPEED; i++) {
+            for (let i = 0; i < (gameSpeed * 10); i++) {
                 result = emulator.execute_cycle();
             }
             const displayState = result.get_display_state();
@@ -63,7 +89,6 @@ const mainCtx = initCanvas(CANVAS_WIDTH, CANVAS_HEIGHT);
     }
     window.requestAnimationFrame(runloop);
 
-    const runButton = document.getElementById("run");
     runButton.addEventListener("click", () => {
         if (running) {
             running = false;
@@ -73,4 +98,23 @@ const mainCtx = initCanvas(CANVAS_WIDTH, CANVAS_HEIGHT);
             runButton.innerHTML = "Stop";
         }
     });
+
+    romsSelect.addEventListener("change", async(e) => {
+        await loadRom(e.target.value, emulator);
+    });
+
+    gameSpeeds.addEventListener("change", async(e) => {
+        gameSpeed = e.target.value;
+    });
+
+    document.addEventListener('keydown', event => {
+        const key = event.key;
+        emulator.keypad_down(key);
+    });
+
+    document.addEventListener('keyup', event => {
+        const key = event.key;
+        emulator.keypad_up(key);
+    });
+
 })();
