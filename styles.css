@@ -74,8 +74,12 @@ select {
     margin-bottom: 10px;
 }
 
-select {
-    width: 200px;
+#roms {
+    width: 150px;
+}
+
+#game_speeds {
+    width: 70px;
 }
 
 button:active {
